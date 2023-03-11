@@ -1,0 +1,25 @@
+{
+  "name": "mumbot",
+  "version": "1.0.0",
+  "description": "Mumble Status IRC bot",
+  "bin": "./mumbot.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cephers/mumbot.git"
+  },
+  "keywords": [
+    "irc",
+    "mumble"
+  ],
+  "scripts": {
+    "pretest": "eslint --ignore-path .gitignore ."
+  },
+  "dependencies": {
+    "irc": "^0.5.2",
+    "node-getopt": "^0.3.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.36.0",
+    "eslint-config-strongloop": "^2.1.0"
+  }
+}
