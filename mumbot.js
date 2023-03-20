@@ -72,10 +72,10 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
         channels: [ this.opt.chan ],
       },
     );
-    this.ircClient.addListener('registered', this.handleIrcRegistered);
-    this.ircClient.addListener('message', this.handleIrcMessage);
-    this.ircClient.addListener('raw', this.handleIrcRaw);
-    this.ircClient.addListener('error', this.handleIrcError);
+    this.ircClient.addListener('registered', this.handleIrcRegistered.bind(this));
+    this.ircClient.addListener('message', this.handleIrcMessage.bind(this));
+    this.ircClient.addListener('raw', this.handleIrcRaw.bind(this));
+    this.ircClient.addListener('error', this.handleIrcError.bind(this));
   }
   tailLog() {
     this.info('tailLog');
