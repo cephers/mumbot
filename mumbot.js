@@ -40,7 +40,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     this.opt = opt;
     this.logData = '';
     this.mumbleState = new Map();
-    this.lastMumbleState = new Map();
+    this.diffMumbleState = new Map();
     this.lastReport = 0;
     this.reportTimer = null;
     this.ircClient = null;
@@ -113,6 +113,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     // <85:commie(-1)> Authenticated
     // <85:commie(-1)> Connection closed: ...
     // <89:commie(-1)> Moved commie:89(-1) to #StephersFanClub[9:7]
+    const lastMumbleState = new Map(this.mumbleState);
     let m;
     if ((m = line.match(/<\d+:([^(]+)\(-?\d+\)+> Authenticated/)) !== null) {
       this.mumbleState.set(m[1], 'root');
@@ -124,17 +125,20 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
       return;
     }
     this.info('mumbleState: ' + util.inspect(this.mumbleState));
-    if (this.mumbleState.size > this.lastMumbleState.size) {
+    if (this.mumbleState.size > lastMumbleState.size) {
       const now = Date.now();
       const lastPlusDelay = this.lastReport + (+this.opt.mindelay * 1000);
       if (now > lastPlusDelay) {
         this.info('Reporting now');
         if (this.reportTimer !== null) {
           clearTimeout(this.reportTimer);
+          this.reportTimer = null;
         }
+        this.diffMumbleState = new Map(lastMumbleState);
         this.report();
       } else if (this.reportTimer === null) {
         this.info('Reporting in the future');
+        this.diffMumbleState = new Map(lastMumbleState);
         this.reportTimer = setTimeout(this.report.bind(this), lastPlusDelay - now);
       } else {
         this.info('Report already scheduled');
@@ -144,7 +148,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
   report() {
     let newUsers = [];
     for (let [user, chan] of this.mumbleState) {
-      if (!this.lastMumbleState.has(user)) {
+      if (!this.diffMumbleState.has(user)) {
         newUsers.push(user);
       }
     }
@@ -153,7 +157,6 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
       return;
     }
 
-    this.lastMumbleState = new Map(this.mumbleState);
     this.lastReport = Date.now();
     this.reportTimer = null;
 
