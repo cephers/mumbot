@@ -9,11 +9,11 @@ const process = require('process');
 
 const DEFAULT_IRC_SERVER = 'irc.wetfish.net';
 const DEFAULT_IRC_PORT = 6697;
-const DEFAULT_IRC_CHAN = '#wetfish';
+const DEFAULT_IRC_CHAN = '#botspam';
 const DEFAULT_IRC_NICK = 'mumbot';
 const DEFAULT_IRC_PASS = null;
 const DEFAULT_MUMBLED_LOG = '/var/log/mumble-server/mumble-server.log';
-const DEFAULT_IRC_MIN_DELAY_S = 300;
+const DEFAULT_IRC_MIN_DELAY_S = 10;
 
 const opt = getopt.create([
   [ 'h', 'help',          'Show this help' ],
@@ -40,6 +40,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     this.opt = opt;
     this.logData = '';
     this.mumbleState = new Map();
+    this.lastMumbleState = new Map();
     this.lastReport = 0;
     this.reportTimer = null;
     this.ircClient = null;
@@ -100,8 +101,8 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
   }
   handleMumbledLogData(data) {
     this.logData += data;
-    var pos = 0;
-    var nl;
+    let pos = 0;
+    let nl;
     while ((nl = this.logData.indexOf('\n')) !== -1) {
       const line = this.logData.substring(pos, nl);
       this.parseMumbledLog(line);
@@ -112,47 +113,56 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     // <85:commie(-1)> Authenticated
     // <85:commie(-1)> Connection closed: ...
     // <89:commie(-1)> Moved commie:89(-1) to #StephersFanClub[9:7]
-    var m;
-    var diff = false;
+    let m;
     if ((m = line.match(/<\d+:([^(]+)\(-?\d+\)+> Authenticated/)) !== null) {
       this.mumbleState.set(m[1], 'root');
-      diff = true;
     } else if ((m = line.match(/<\d+:([^(]+)\(-?\d+\)+> Connection closed/)) !== null) {
       this.mumbleState.delete(m[1]);
-      diff = true;
     } else if ((m = line.match(/<\d+:([^(]+)\(-?\d+\)+> Moved .+? to #(.+?)\[\d+:\d+\]$/)) !== null) {
       this.mumbleState.set(m[1], m[2]);
     } else {
       return;
     }
     this.info('mumbleState: ' + util.inspect(this.mumbleState));
-    if (!diff) {
-      return;
-    }
-    const now = Date.now();
-    const lastPlusDelay = this.lastReport + (+this.opt.mindelay * 1000);
-    if (now > lastPlusDelay) {
-      if (this.reportTimer !== null) {
-        clearTimeout(this.reportTimer);
+    if (this.mumbleState.size > this.lastMumbleState.size) {
+      const now = Date.now();
+      const lastPlusDelay = this.lastReport + (+this.opt.mindelay * 1000);
+      if (now > lastPlusDelay) {
+        this.info('Reporting now');
+        if (this.reportTimer !== null) {
+          clearTimeout(this.reportTimer);
+        }
+        this.report();
+      } else if (this.reportTimer === null) {
+        this.info('Reporting in the future');
+        this.reportTimer = setTimeout(this.report.bind(this), lastPlusDelay - now);
+      } else {
+        this.info('Report already scheduled');
       }
-      this.report();
-    } else if (this.reportTimer === null) {
-      this.reportTimer = setTimeout(this.report.bind(this), lastPlusDelay - now);
     }
   }
   report() {
+    let newUsers = [];
+    for (let [user, chan] of this.mumbleState) {
+      if (!this.lastMumbleState.has(user)) {
+        newUsers.push(user);
+      }
+    }
+
+    if (newUsers.length < 1) {
+      return;
+    }
+
+    this.lastMumbleState = new Map(this.mumbleState);
     this.lastReport = Date.now();
     this.reportTimer = null;
-    var what;
-    if (this.mumbleState.size < 1) {
-      return;
-    } else if (this.mumbleState.size === 1) {
-      what = 'One user is on mumble!';
-    } else {
-      what = this.mumbleState.size + ' users are on mumble!';
+
+    let what = newUsers.join(', ') + ' joined mumble';
+    if (newUsers.length !== this.mumbleState.size) {
+      what += ' (' + this.mumbleState.size + ' users online)'
     }
     this.info('irc_out: ' + what);
-    this.ircClient.say(this.chan, what);
+    this.ircClient.say(this.opt.chan, what);
   }
   handleMumbledLogClose() {
     this.err('log_close');
