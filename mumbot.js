@@ -7,7 +7,8 @@ const getopt = require('node-getopt');
 const util = require('util');
 const process = require('process');
 
-const DEFAULT_IRC_SERVER = 'docker.wetfish.net';
+const DEFAULT_IRC_SERVER = 'irc.wetfish.net';
+const DEFAULT_IRC_PORT = 6697;
 const DEFAULT_IRC_CHAN = '#wetfish';
 const DEFAULT_IRC_NICK = 'mumbot';
 const DEFAULT_IRC_PASS = null;
@@ -17,14 +18,16 @@ const DEFAULT_IRC_MIN_DELAY_S = 300;
 const opt = getopt.create([
   [ 'h', 'help',          'Show this help' ],
   [ 's', 'server=SERVER', 'IRC server to connect to (default: ' + DEFAULT_IRC_SERVER + ')' ],
+  [ 'p', 'port=PORT'    , 'IRC port to connec to (default: ' + DEFAULT_IRC_PORT + ')' ],
   [ 'c', 'chan=CHAN',     'IRC channel to join (default: ' + DEFAULT_IRC_CHAN + ')' ],
   [ 'n', 'nick=NICK',     'IRC nick (default: ' + DEFAULT_IRC_NICK + ')' ],
-  [ 'p', 'pass=PASS',     'IRC pass (default: ' + DEFAULT_IRC_PASS + ')' ],
+  [ 'P', 'pass=PASS',     'IRC pass (default: ' + DEFAULT_IRC_PASS + ')' ],
   [ 'f', 'logfile=FILE',  'mumbled log path (default: ' + DEFAULT_MUMBLED_LOG + ')' ],
   [ 'd', 'mindelay=SECS', 'Min time between chats (default: ' + DEFAULT_IRC_MIN_DELAY_S + ')' ],
 ]).bindHelp().parseSystem();
 
 opt.options.server ||= DEFAULT_IRC_SERVER;
+opt.options.port ||= DEFAULT_IRC_PORT;
 opt.options.chan ||= DEFAULT_IRC_CHAN;
 opt.options.nick ||= DEFAULT_IRC_NICK;
 opt.options.pass ||= DEFAULT_IRC_PASS;
@@ -63,7 +66,8 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
         userName: this.opt.nick,
         realName: this.opt.nick,
         password: this.opt.pass,
-        sasl: true,
+        port: this.opt.port,
+        // sasl: true,
         secure: true,
         channels: [ this.opt.chan ],
       },
