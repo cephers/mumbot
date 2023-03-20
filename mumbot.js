@@ -93,7 +93,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     // TODO mumbot commands
   }
   handleIrcRaw(msg) {
-    this.info('irc_raw: ' + util.inspect(msg, { compact: true, breakLength: Infinity }));
+    // this.info('irc_raw: ' + util.inspect(msg, { compact: true, breakLength: Infinity }));
   }
   handleIrcError(msg) {
     this.err('irc_err: ' + util.inspect(msg));
