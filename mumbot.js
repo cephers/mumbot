@@ -5,12 +5,13 @@ const irc = require('irc');
 const child_process = require('node:child_process');
 const getopt = require('node-getopt');
 const util = require('util');
+const process = require('process');
 
 const DEFAULT_IRC_SERVER = 'docker.wetfish.net';
 const DEFAULT_IRC_CHAN = '#wetfish';
 const DEFAULT_IRC_NICK = 'mumbot';
-const DEFAULT_IRC_PASS = 'foobar';
-const DEFAULT_MUMBLED_LOG = 'mumbled.log';
+const DEFAULT_IRC_PASS = null;
+const DEFAULT_MUMBLED_LOG = '/var/log/mumble-server/mumble-server.log';
 const DEFAULT_IRC_MIN_DELAY_S = 300;
 
 const opt = getopt.create([
@@ -42,8 +43,16 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     this.tail = null;
   }
   run() {
+    this.handleSighup();
     this.makeIrcClient();
     this.tailLog();
+  }
+  handleSighup() {
+    const self = this;
+    process.on('SIGHUP', () => {
+      this.info('SIGHUP');
+      self.tailLog();
+    });
   }
   makeIrcClient() {
     this.info('makeIrcClient');
@@ -66,6 +75,9 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
   }
   tailLog() {
     this.info('tailLog');
+    if (this.tail) {
+      this.tail.kill();
+    }
     this.tail = child_process.spawn('tail', [ '-Fn0', this.opt.logfile ]);
     this.tail.stdout.on('data', this.handleMumbledLogData.bind(this));
     this.tail.on('close', this.handleMumbledLogClose.bind(this));
