@@ -9,11 +9,11 @@ const process = require('process');
 
 const DEFAULT_IRC_SERVER = 'irc.wetfish.net';
 const DEFAULT_IRC_PORT = 6697;
-const DEFAULT_IRC_CHAN = '#botspam';
+const DEFAULT_IRC_CHAN = '#wetfish';
 const DEFAULT_IRC_NICK = 'mumbot';
 const DEFAULT_IRC_PASS = null;
 const DEFAULT_MUMBLED_LOG = '/var/log/mumble-server/mumble-server.log';
-const DEFAULT_IRC_MIN_DELAY_S = 10;
+const DEFAULT_IRC_MIN_DELAY_S = 300;
 
 const opt = getopt.create([
   [ 'h', 'help',          'Show this help' ],
@@ -36,7 +36,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
 
 (new class {
   constructor(opt) {
-    this.info('construct: ', util.inspect(this.opt));
+    this.info('construct: ', util.inspect(opt));
     this.opt = opt;
     this.logData = '';
     this.mumbleState = new Map();
@@ -54,7 +54,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
   handleSighup() {
     const self = this;
     process.on('SIGHUP', () => {
-      this.info('SIGHUP');
+      self.info('SIGHUP');
       self.tailLog();
     });
   }
