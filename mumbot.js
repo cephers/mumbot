@@ -42,6 +42,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     this.mumbleState = new Map();
     this.diffMumbleState = new Map();
     this.lastReport = 0;
+    this.lastNewUsers = [];
     this.reportTimer = null;
     this.ircClient = null;
     this.tail = null;
@@ -152,11 +153,13 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
         newUsers.push(user);
       }
     }
+    newUsers.sort();
 
-    if (newUsers.length < 1) {
+    if (newUsers.length < 1 || JSON.stringify(newUsers) === JSON.stringify(this.lastNewUsers)) {
       return;
     }
 
+    this.lastNewUsers = newUsers.slice();
     this.lastReport = Date.now();
     this.reportTimer = null;
 
