@@ -37,6 +37,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
 (new class {
   constructor(opt) {
     this.info('construct: ', util.inspect(opt));
+    this.initRead = true;
     this.opt = opt;
     this.logData = '';
     this.mumbleState = new Map();
@@ -50,7 +51,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
   run() {
     this.handleSighup();
     this.makeIrcClient();
-    this.tailLog();
+    this.readLog();
   }
   handleSighup() {
     const self = this;
@@ -79,7 +80,19 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     this.ircClient.addListener('raw', this.handleIrcRaw.bind(this));
     this.ircClient.addListener('error', this.handleIrcError.bind(this));
   }
+  readLog() {
+    const self = this;
+    const cat = child_process.spawn('cat', [ this.opt.logfile ]);
+    cat.stdout.on('data', this.handleMumbledLogData.bind(this));
+    cat.on('close', function () {
+      self.initRead = false;
+      self.tailLog();
+    });
+  }
   tailLog() {
+    if (this.initRead) {
+      return;
+    }
     this.info('tailLog');
     if (this.tail) {
       this.tail.kill();
@@ -123,6 +136,9 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     } else if ((m = line.match(/<\d+:([^(]+)\(-?\d+\)+> Moved .+? to #(.+?)\[\d+:\d+\]$/)) !== null) {
       this.mumbleState.set(m[1], m[2]);
     } else {
+      return;
+    }
+    if (this.initRead) {
       return;
     }
     this.info('mumbleState: ' + util.inspect(this.mumbleState));
