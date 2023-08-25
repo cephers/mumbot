@@ -85,6 +85,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     const cat = child_process.spawn('cat', [ this.opt.logfile ]);
     cat.stdout.on('data', this.handleMumbledLogData.bind(this));
     cat.on('close', function () {
+      self.info('initRead finished');
       self.initRead = false;
       self.tailLog();
     });
@@ -105,7 +106,26 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     this.info('irc_registered');
   }
   handleIrcMessage(nick, to, text, msg) {
-    // TODO mumbot commands
+    const match = text.match(/^mumbot state (.+)$/);
+    if (!match) {
+      return;
+    }
+    try {
+      const state = JSON.parse(match[1]);
+    } catch (e) {
+      return;
+    }
+    if (!state || !(typeof state === 'object')) {
+      return;
+    }
+    this.mumbleState = new Map();
+    for (const nick in state) {
+      if (!(typeof state[nick] === 'string')) {
+        continue;
+      }
+      this.mumbleState.set(nick, state[nick]);
+    }
+    this.info('manual mumbleState: ' + util.inspect(this.mumbleState));
   }
   handleIrcRaw(msg) {
     // this.info('irc_raw: ' + util.inspect(msg, { compact: true, breakLength: Infinity }));
