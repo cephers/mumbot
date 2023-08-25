@@ -124,6 +124,7 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
     }
   }
   parseMumbledLog(line) {
+    // Server listening on 0.0.0.0:64738
     // <85:commie(-1)> Authenticated
     // <85:commie(-1)> Connection closed: ...
     // <89:commie(-1)> Moved commie:89(-1) to #StephersFanClub[9:7]
@@ -135,6 +136,8 @@ opt.options.mindelay ||= DEFAULT_IRC_MIN_DELAY_S;
       this.mumbleState.delete(m[1]);
     } else if ((m = line.match(/<\d+:([^(]+)\(-?\d+\)+> Moved .+? to #(.+?)\[\d+:\d+\]$/)) !== null) {
       this.mumbleState.set(m[1], m[2]);
+    } else if ((m = line.match(/Server listening on/)) !== null) {
+      this.mumbleState.clear();
     } else {
       return;
     }
